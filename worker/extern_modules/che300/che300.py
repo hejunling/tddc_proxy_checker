@@ -9,18 +9,18 @@ import requests
 from lxml import html
 
 
-class CheokProxyChecker(object):
+class Che300ProxyChecker(object):
     '''
     classdocs
     '''
     
-    platform = 'cheok'
+    platform = 'che300'
     
-    feature = 'cheok.cheok'
+    feature = 'che300.che300'
     
     proxy_type = 'http'
     
-    check_page = 'http://www.cheok.com/'
+    check_page = 'http://www.che300.com/buycar?from=bd_seo&city=0'
 
     def __init__(self, info):
         '''
@@ -32,13 +32,13 @@ class CheokProxyChecker(object):
         headers = {'User-Agent': ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) '
                                   'AppleWebKit/537.36 (KHTML, like Gecko) '
                                   'Chrome/56.0.2924.87 Safari/537.36'),
-                    'X-Forwarded-For': proxies['http'],
-                    'X-Real-IP': proxies['http'],
+                   'X-Forwarded-For': proxies['http'],
+                   'X-Real-IP': proxies['http'],
                    'HTTP_CLIENT_IP': proxies['http'],
                    'HTTP_X_FORWARD_FOR': proxies['http']}
         try:
             rsp = requests.get(self.check_page, proxies=proxies, timeout=5, headers=headers)
-        except:
+        except Exception, e:
             pass
         else:
             if rsp.status_code != 200:
@@ -48,6 +48,6 @@ class CheokProxyChecker(object):
             except:
                 pass
             else:
-                ret = doc.xpath('//*[@class="module-title"]')
+                ret = doc.xpath('//*[@class="list-item"]/a/@href')
                 if len(ret):
                     self.useful = True

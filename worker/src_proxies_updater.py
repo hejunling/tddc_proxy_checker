@@ -41,7 +41,7 @@ class ProxySourceUpdater(object):
                                   '&format=json&sep=1'),
                            'parse_mould': self._parse_kuaidaili}]
         TDDCLogging.info('->[TDDC_PROXY_SOURCE_UPDATER] Proxy Source Updater Was Started.')
-        
+
     def start(self):
         while True:
             for infos in self._src_apis:
@@ -65,13 +65,14 @@ class ProxySourceUpdater(object):
                     self._ip_pool.smadd('tddc:test:proxy:ip_src:http', https_ips)
                     TDDCLogging.info('[TDDC_PROXY_SOURCE_UPDATER] Source IPS（HTTPS） Growth：%d' % len(https_ips))
                 except Exception, e:
-                    TDDCLogging.error('[TDDC_PROXY_SOURCE_UPDATER] Exception[IP_SOURCE]:' + e)
+                    TDDCLogging.error('[TDDC_PROXY_SOURCE_UPDATER] Exception[IP_SOURCE]:')
+                    TDDCLogging.error(e)
             gevent.sleep(10)
-    
+
     @staticmethod
     def _proxy_active_check(ips):
         active_ips = []
-        
+
         def _checker(ip):
             try:
                 _ip, _port = ip.split(':')
@@ -83,15 +84,15 @@ class ProxySourceUpdater(object):
                 pass
             else:
                 active_ips.append(ip)
-        
+
         p = gevent.pool.Pool(16)
         p.map(_checker, ips)
         p.join()
         return active_ips
-    
+
     def _parse_daili666(self, data):
         return list(set(data.split('\r\n')))
-    
+
     def _parse_kuaidaili(self, data):
         proxies = {'HTTP': [], 'HTTPS': []}
         infos = json.loads(data)
@@ -107,7 +108,7 @@ def main():
     import gevent.monkey
     gevent.monkey.patch_all()
     ProxySourceUpdater().start()
-    
+
 if __name__ == '__main__':
     main()
 
