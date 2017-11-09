@@ -6,16 +6,14 @@ Created on 2017年4月17日
 '''
 
 import importlib
-
 import gevent
-from tddc.base.package.packages_manager import PackagesManager
-from tddc.common import TDDCLogging
 
-from proxy_checker_site import ProxyCheckerSite
-from worker.common.queues import ProxyCheckerQueues
+from tddc import TDDCLogger, CacheManager, ExternManager
+
+from config import ConfigCenterExtern
 
 
-class Checker(object):
+class Checker(TDDCLogger):
     '''
     classdocs
     '''
@@ -24,23 +22,26 @@ class Checker(object):
         '''
         Constructor
         '''
-        TDDCLogging.info('-->Checker Is Starting.')
+        super(Checker, self).__init__()
+        self.info('-->Checker Is Starting.')
+        self.proxy_conf = ConfigCenterExtern().get_proxies()
+        self.concurrent = self.proxy_conf.concurrent
         self._init_rules()
-        gevent.spawn(self._rules_update)
-        gevent.sleep()
-        for i in range(ProxyCheckerSite.CONCURRENT):
-            gevent.spawn(self._check, i, 'http', ProxyCheckerQueues.HTTP_SOURCE_PROXY)
+        # gevent.spawn(self._rules_update)
+        # gevent.sleep()
+        for i in range(self.concurrent):
+            gevent.spawn(self._check, i, 'http')
             gevent.sleep()
-        for i in range(ProxyCheckerSite.CONCURRENT):
-            gevent.spawn(self._check, i, 'https', ProxyCheckerQueues.HTTPS_SOURCE_PROXY)
+        for i in range(self.concurrent):
+            gevent.spawn(self._check, i, 'https')
             gevent.sleep()
-        TDDCLogging.info('-->Checker Was Started.')
+        self.info('-->Checker Was Started.')
 
     def _init_rules(self):
         self._rules_moulds = {'http': {}, 'https': {}}
-        modules = PackagesManager().get_all_modules()
-        for platform, module in modules.items():
-            for _, cls in module.items():
+        modules = ExternManager().get_all_modules()
+        for platform, _module in modules.items():
+            for _, cls in _module.items():
                 self._rules_moulds[cls.proxy_type][platform] = cls
 
     def _rules_update(self):
@@ -55,23 +56,27 @@ class Checker(object):
                     continue
                 self._rules_moulds[cls.proxy_type][cls.proxy_type] = cls
     
-    def _check(self, tag, proxy_type, src_queue):
+    def _check(self, tag, proxy_type):
+        cnt = 0
         while True:
-            if not len(self._rules_moulds[proxy_type]):
-                gevent.sleep(10)
-                continue
-            info = src_queue.get()
-            for platform, cls in self._rules_moulds[proxy_type].items():
-                ret = cls(info)
-                if ret.useful:
-                    info.platform = platform
-                    ProxyCheckerQueues.USEFUL_PROXY.put(info)
-
-
-def main():
-    Checker()
-    while True:
-        gevent.sleep(60)
-    
-if __name__ == '__main__':
-    main()
+            try:
+                if not len(self._rules_moulds[proxy_type]):
+                    gevent.sleep(10)
+                    continue
+                proxy = CacheManager().get_random('%s:%s' % (self.proxy_conf.source_key, proxy_type))
+                if not proxy:
+                    if not cnt % 6 and tag == 1:
+                        self.warning('No Proxy(%s).' % proxy_type)
+                    cnt += 1
+                    gevent.sleep(10)
+                    continue
+                for platform, cls in self._rules_moulds[proxy_type].items():
+                    ret = cls(proxy)
+                    if ret.useful:
+                        CacheManager().set('%s:%s' % (self.proxy_conf.pool_key, platform),
+                                           proxy)
+                        self.debug('[%s:%s:%s]' % (proxy_type,
+                                                   platform,
+                                                   proxy))
+            except Exception as e:
+                self.exception(e)
