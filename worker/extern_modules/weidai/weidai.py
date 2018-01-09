@@ -17,6 +17,8 @@ class WeidaiProxyChecker(object):
     platform = 'weidai'
     
     feature = 'weidai.weidai'
+
+    version = '23122123'
     
     proxy_type = 'https'
     

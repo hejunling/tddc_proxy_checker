@@ -19,7 +19,7 @@ class Che300ProxyChecker(ExternBase):
     
     feature = 'che300.che300'
 
-    version = 123123123
+    version = '123123123'
     
     proxy_type = 'http'
     

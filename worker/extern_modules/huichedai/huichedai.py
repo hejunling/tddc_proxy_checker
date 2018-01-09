@@ -17,6 +17,8 @@ class Huichedai(object):
     platform = 'huichedai'
     
     feature = 'huichedai.huichedai'
+
+    version = '12123132'
     
     proxy_type = 'http'
     

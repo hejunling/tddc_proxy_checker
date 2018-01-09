@@ -10,33 +10,34 @@ from lxml import html
 from tddc import ExternBase
 
 
-class CheokProxyChecker(ExternBase):
+class QianchengwuyouProxyChecker(ExternBase):
     '''
     classdocs
     '''
-    
-    platform = 'cheok'
-    
-    feature = 'cheok.cheok'
+
+    platform = 'qianchengwuyou'
+
+    feature = 'qianchengwuyou.qianchengwuyou'
 
     version = '12312312'
-    
+
     proxy_type = 'http'
-    
-    check_page = 'http://www.cheok.com/'
+
+    check_page = 'http://www.51job.com/'
 
     def __init__(self, proxy):
         '''
         Constructor
         '''
-        super(CheokProxyChecker, self).__init__()
+        super(QianchengwuyouProxyChecker, self).__init__()
         self.proxy = proxy
         self.useful = False
-        proxies = {'http': proxy}
+        proxies = {'https': proxy,
+                   'http': proxy}
         headers = {'User-Agent': ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) '
                                   'AppleWebKit/537.36 (KHTML, like Gecko) '
                                   'Chrome/56.0.2924.87 Safari/537.36'),
-                   'X-Forwarded-For': proxies['http']}
+                   'X-Forwarded-For': proxies['https']}
         try:
             rsp = requests.get(self.check_page, proxies=proxies, timeout=5, headers=headers)
         except:
@@ -49,6 +50,6 @@ class CheokProxyChecker(ExternBase):
             except:
                 pass
             else:
-                ret = doc.xpath('//*[@class="module-title"]')
+                ret = doc.xpath('//*[@class="on"]')
                 if len(ret):
                     self.useful = True

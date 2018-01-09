@@ -17,6 +17,8 @@ class GongpingjiaProxyChecker(object):
     platform = 'gongpingjia'
     
     feature = 'gongpingjia.gongpingjia'
+
+    version = '123123123'
     
     proxy_type = 'http'
     

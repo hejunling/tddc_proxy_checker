@@ -7,6 +7,9 @@ Created on 2017年4月17日
 
 import gevent.monkey
 import gevent.pool
+
+from worker.fetch_ip_form_vps import FetchIPFromVPS
+
 gevent.monkey.patch_all()
 
 import requests
@@ -39,34 +42,83 @@ class ProxySourceUpdater(TDDCLogger):
                                    'an_ha=1&sp1=1&sp2=1&sp3=1&f_pr=1'
                                    '&format=json&sep=1'),
                            'parse_mould': self._parse_kuaidaili}]
+        adsl = ConfigCenterExtern().get_adsl()
+        self.adsl_server = FetchIPFromVPS(adsl.host, adsl.port, adsl.username, adsl.password)
+        self.adsl_proxy = self._get_adsl_proxy()
+        self.switching = False
         self.info('->[TDDC_PROXY_SOURCE_UPDATER] Proxy Source Updater Was Started.')
 
     def start(self):
+        cnt = 0
         while True:
-            for infos in self._src_apis:
-                try:
-                    platform = infos.get('platform')
-                    api = infos.get('api')
-                    parse_mould = infos.get('parse_mould')
-                    rsp = requests.get(api)
-                    if not rsp:
-                        self.error('Exception(%s): ' % platform + api)
-                        continue
-                    if not parse_mould:
-                        self.error('Exception: parse_mould is None.')
-                        continue
-                    all_ips = parse_mould(rsp.text)
-                    http_ips = self._proxy_active_check(all_ips.get('HTTP', []))
-                    CacheManager().smadd('%s:http' % self.proxy_conf.source_key, http_ips)
-                    self.info('Proxies To HTTP Was Growth：%d' % len(http_ips))
-                    https_ips = self._proxy_active_check(all_ips.get('HTTPS', []))
-                    CacheManager().smadd('%s:https' % self.proxy_conf.source_key, https_ips)
-                    CacheManager().smadd('%s:http' % self.proxy_conf.source_key, https_ips)
-                    self.info('Proxies To HTTPS Was Growth：%d' % len(https_ips))
-                except Exception as e:
-                    self.error('Exception[IP_SOURCE]:')
-                    self.exception(e)
-            gevent.sleep(10)
+            if cnt % 3 == 0:
+                gevent.spawn(self._update_adsl)
+                gevent.sleep()
+            elif cnt % 10 == 0:
+                gevent.spawn(self._update_src)
+                gevent.sleep()
+            gevent.sleep(1)
+            cnt += 1
+
+    def _update_adsl(self):
+        proxy = CacheManager().get_random('tddc:proxy:adsl', False)
+        if proxy or self.switching:
+            return
+        self.switching = True
+        try:
+            self.adsl_proxy = self._redial_adsl_proxy()
+            if self.adsl_proxy:
+                self.info('ADSL Proxy(%s) Was Updated.' % self.adsl_proxy)
+        except Exception as e:
+            self.warning(e.message)
+        self.switching = False
+
+    def _get_adsl_proxy(self):
+        while True:
+            try:
+                ip = self.adsl_server.get_ip()
+            except Exception as e:
+                self.warning(e.message)
+            else:
+                proxy = '%s:52460' % ip
+                CacheManager().set('tddc:proxy:adsl', proxy)
+                return proxy
+
+    def _redial_adsl_proxy(self):
+        while True:
+            try:
+                ip = self.adsl_server.redial()
+            except Exception as e:
+                self.warning(e.message)
+            else:
+                proxy = '%s:52460' % ip
+                CacheManager().set('tddc:proxy:adsl', proxy)
+                return proxy
+
+    def _update_src(self):
+        for info in self._src_apis:
+            try:
+                platform = info.get('platform')
+                api = info.get('api')
+                parse_mould = info.get('parse_mould')
+                rsp = requests.get(api)
+                if not rsp:
+                    self.error('Exception(%s): ' % platform + api)
+                    continue
+                if not parse_mould:
+                    self.error('Exception: parse_mould is None.')
+                    continue
+                all_ips = parse_mould(rsp.text)
+                http_ips = self._proxy_active_check(all_ips.get('HTTP', []))
+                CacheManager().smadd('%s:http' % self.proxy_conf.source_key, http_ips)
+                self.info('Proxies To HTTP Was Growth：%d' % len(http_ips))
+                https_ips = self._proxy_active_check(all_ips.get('HTTPS', []))
+                CacheManager().smadd('%s:https' % self.proxy_conf.source_key, https_ips)
+                CacheManager().smadd('%s:http' % self.proxy_conf.source_key, https_ips)
+                self.info('Proxies To HTTPS Was Growth：%d' % len(https_ips))
+            except Exception as e:
+                self.error('Exception[IP_SOURCE]:')
+                self.exception(e)
 
     @staticmethod
     def _proxy_active_check(ips):

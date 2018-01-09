@@ -5,7 +5,6 @@ Created on 2017年4月17日
 @author: chenyitao
 '''
 
-import importlib
 import gevent
 
 from tddc import TDDCLogger, CacheManager, ExternManager
@@ -23,19 +22,17 @@ class Checker(TDDCLogger):
         Constructor
         '''
         super(Checker, self).__init__()
-        self.info('-->Checker Is Starting.')
+        self.info('Checker Is Starting.')
         self.proxy_conf = ConfigCenterExtern().get_proxies()
         self.concurrent = self.proxy_conf.concurrent
         self._init_rules()
-        # gevent.spawn(self._rules_update)
-        # gevent.sleep()
         for i in range(self.concurrent):
             gevent.spawn(self._check, i, 'http')
             gevent.sleep()
         for i in range(self.concurrent):
             gevent.spawn(self._check, i, 'https')
             gevent.sleep()
-        self.info('-->Checker Was Started.')
+        self.info('Checker Was Started.')
 
     def _init_rules(self):
         self._rules_moulds = {'http': {}, 'https': {}}
@@ -44,20 +41,9 @@ class Checker(TDDCLogger):
             for _, cls in _module.items():
                 self._rules_moulds[cls.proxy_type][platform] = cls
 
-    def _rules_update(self):
-        while True:
-            rule = ProxyCheckerQueues.RULES_MOULDS_UPDATE.get()
-            print(rule.platform, rule.package, rule.moulds)
-            for cls_name in rule.moulds:
-                molule = importlib.import_module(rule.package)
-                cls = getattr(molule, cls_name)
-                if not cls:
-                    TDDCLogging.error('Exception: import rule failed: ' + cls_name)
-                    continue
-                self._rules_moulds[cls.proxy_type][cls.proxy_type] = cls
-    
     def _check(self, tag, proxy_type):
         cnt = 0
+        gevent.sleep(5)
         while True:
             try:
                 if not len(self._rules_moulds[proxy_type]):
