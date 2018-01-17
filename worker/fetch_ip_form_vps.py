@@ -21,7 +21,7 @@ class FetchIPFromVPS(object):
     def get_ip(self):
         if self._check():
             return self._get_ip()
-        for _ in range(5):
+        for _ in range(15):
             self._redial()
             if self._check():
                 return self._get_ip()

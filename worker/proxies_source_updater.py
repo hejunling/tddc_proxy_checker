@@ -91,6 +91,8 @@ class ProxySourceUpdater(TDDCLogger):
             except Exception as e:
                 self.warning(e.message)
             else:
+                if not ip:
+                    continue
                 proxy = '%s:52460' % ip
                 CacheManager().set('tddc:proxy:adsl', proxy)
                 return proxy
