@@ -33,7 +33,7 @@ class ProxySourceUpdater(TDDCLogger):
         '''
         super(ProxySourceUpdater, self).__init__()
         self.proxy_conf = ConfigCenterExtern().get_proxies()
-        self.info('->[TDDC_PROXY_SOURCE_UPDATER] Proxy Source Updater Is Starting.')
+        self.info('[TDDC_PROXY_SOURCE_UPDATER] Proxy Source Updater Is Starting.')
         self._src_apis = [{'platform': 'kuaidaili',
                            'api': ('http://dev.kuaidaili.com/api/getproxy/'
                                    '?orderid=999310215091675&num=100&'

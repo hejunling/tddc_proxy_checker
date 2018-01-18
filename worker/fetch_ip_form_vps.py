@@ -8,8 +8,10 @@ Created on 2017年3月14日
 import gevent
 from paramiko.client import SSHClient
 
+from tddc import TDDCLogger
 
-class FetchIPFromVPS(object):
+
+class FetchIPFromVPS(TDDCLogger):
 
     def __init__(self, host, port, username, password):
         self.host = host
@@ -57,7 +59,7 @@ class FetchIPFromVPS(object):
         info = stdout.readlines()
         info = ''.join(info).split('ppp0')
         if len(info) != 2:
-            print('Network "ppp0" Not Found.')
+            self.warning('Network "ppp0" Not Found.')
             return None
         info = info[1]
         start_pos = info.find('inet') + 4# 任务回队列 时间重置
