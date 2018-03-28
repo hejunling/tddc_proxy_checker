@@ -4,26 +4,29 @@ Created on 2017年8月31日
 
 @author: chenyitao
 """
+from sqlalchemy import Column, Integer, String
 
-from tddc import WorkerConfigCenter
+from tddc import Base, engine
 
 
-class ConfigCenterExtern(WorkerConfigCenter):
+class ProxyModel(Base):
+    __tablename__ = 'proxy_info'
 
-    @staticmethod
-    def tables():
-        return dict(WorkerConfigCenter.tables(),
-                    **{'proxies': {'source_key': {'field_type': 'TEXT'},
-                                   'pool_key': {'field_type': 'TEXT'},
-                                   'source': {'field_type': 'TEXT'},
-                                   'concurrent': {'field_type': 'INTEGER'}},
-                       'adsl': {'host': {'field_type': 'TEXT'},
-                                'port': {'field_type': 'INTEGER'},
-                                'username': {'field_type': 'TEXT'},
-                                'password': {'field_type': 'INTEGER'}}})
+    id = Column(Integer, primary_key=True)
+    source_key = Column(String(32))
+    pool_key = Column(String(32))
+    source = Column(String(1024))
+    concurrent = Column(Integer)
 
-    def get_adsl(self):
-        return self._get_info('adsl')
 
-    def get_proxies(self):
-        return self._get_info('proxies')
+class ADSLModel(Base):
+    __tablename__ = 'adsl_info'
+
+    id = Column(Integer, primary_key=True)
+    host = Column(String(32))
+    port = Column(Integer)
+    username = Column(String(32))
+    passwd = Column(String(32))
+
+
+Base.metadata.create_all(engine)

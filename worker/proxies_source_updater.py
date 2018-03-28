@@ -4,10 +4,12 @@ Created on 2017年4月17日
 
 @author: chenyitao
 '''
+import logging
 
 import gevent.monkey
 import gevent.pool
 
+from config import ProxyModel, ADSLModel
 from worker.fetch_ip_form_vps import FetchIPFromVPS
 
 gevent.monkey.patch_all()
@@ -17,12 +19,12 @@ import socket
 import json
 import setproctitle
 
-from tddc import TDDCLogger, CacheManager
+from tddc import CacheManager, DBSession
 
-from config import ConfigCenterExtern
+log = logging.getLogger(__name__)
 
 
-class ProxySourceUpdater(TDDCLogger):
+class ProxySourceUpdater(object):
     '''
     classdocs
     '''
@@ -32,8 +34,8 @@ class ProxySourceUpdater(TDDCLogger):
         Constructor
         '''
         super(ProxySourceUpdater, self).__init__()
-        self.proxy_conf = ConfigCenterExtern().get_proxies()
-        self.info('[TDDC_PROXY_SOURCE_UPDATER] Proxy Source Updater Is Starting.')
+        self.proxy_conf = DBSession.query(ProxyModel).get(1)
+        log.info('[TDDC_PROXY_SOURCE_UPDATER] Proxy Source Updater Is Starting.')
         self._src_apis = [{'platform': 'kuaidaili',
                            'api': ('http://dev.kuaidaili.com/api/getproxy/'
                                    '?orderid=999310215091675&num=100&'
@@ -42,11 +44,14 @@ class ProxySourceUpdater(TDDCLogger):
                                    'an_ha=1&sp1=1&sp2=1&sp3=1&f_pr=1'
                                    '&format=json&sep=1'),
                            'parse_mould': self._parse_kuaidaili}]
-        adsl = ConfigCenterExtern().get_adsl()
-        self.adsl_server = FetchIPFromVPS(adsl.host, adsl.port, adsl.username, adsl.password)
+        self.adsl = DBSession.query(ADSLModel).get(1)
+        self.adsl_server = FetchIPFromVPS(self.adsl.host,
+                                          self.adsl.port,
+                                          self.adsl.username,
+                                          self.adsl.passwd)
         self.adsl_proxy = self._get_adsl_proxy()
         self.switching = False
-        self.info('->[TDDC_PROXY_SOURCE_UPDATER] Proxy Source Updater Was Started.')
+        log.info('->[TDDC_PROXY_SOURCE_UPDATER] Proxy Source Updater Was Started.')
 
     def start(self):
         cnt = 0
@@ -68,9 +73,9 @@ class ProxySourceUpdater(TDDCLogger):
         try:
             self.adsl_proxy = self._redial_adsl_proxy()
             if self.adsl_proxy:
-                self.info('ADSL Proxy(%s) Was Updated.' % self.adsl_proxy)
+                log.info('ADSL Proxy(%s) Was Updated.' % self.adsl_proxy)
         except Exception as e:
-            self.warning(e.message)
+            log.warning(e.message)
         self.switching = False
 
     def _get_adsl_proxy(self):
@@ -105,22 +110,22 @@ class ProxySourceUpdater(TDDCLogger):
                 parse_mould = info.get('parse_mould')
                 rsp = requests.get(api)
                 if not rsp:
-                    self.error('Exception(%s): ' % platform + api)
+                    log.error('Exception(%s): ' % platform + api)
                     continue
                 if not parse_mould:
-                    self.error('Exception: parse_mould is None.')
+                    log.error('Exception: parse_mould is None.')
                     continue
                 all_ips = parse_mould(rsp.text)
                 http_ips = self._proxy_active_check(all_ips.get('HTTP', []))
                 CacheManager().smadd('%s:http' % self.proxy_conf.source_key, http_ips)
-                self.info('Proxies To HTTP Was Growth：%d' % len(http_ips))
+                log.info('Proxies To HTTP Was Growth：%d' % len(http_ips))
                 https_ips = self._proxy_active_check(all_ips.get('HTTPS', []))
                 CacheManager().smadd('%s:https' % self.proxy_conf.source_key, https_ips)
                 CacheManager().smadd('%s:http' % self.proxy_conf.source_key, https_ips)
-                self.info('Proxies To HTTPS Was Growth：%d' % len(https_ips))
+                log.info('Proxies To HTTPS Was Growth：%d' % len(https_ips))
             except Exception as e:
-                self.error('Exception[IP_SOURCE]:')
-                self.exception(e)
+                log.error('Exception[IP_SOURCE]:')
+                log.exception(e)
 
     @staticmethod
     def _proxy_active_check(ips):

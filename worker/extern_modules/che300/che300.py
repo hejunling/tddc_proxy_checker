@@ -23,7 +23,7 @@ class Che300ProxyChecker(ExternBase):
     
     proxy_type = 'http'
     
-    check_page = 'http://www.che300.com/buycar?from=bd_seo&city=0'
+    check_page = 'https://www.che300.com/buycar?from=bd_seo&city=0'
 
     def __init__(self, proxy):
         '''

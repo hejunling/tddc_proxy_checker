@@ -4,15 +4,16 @@ Created on 2017年4月17日
 
 @author: chenyitao
 '''
-
+import logging
 import gevent
 
-from tddc import TDDCLogger, CacheManager, ExternManager
+from config import ProxyModel
+from tddc import CacheManager, ExternManager, DBSession
 
-from config import ConfigCenterExtern
+log = logging.getLogger(__name__)
 
 
-class Checker(TDDCLogger):
+class Checker(object):
     '''
     classdocs
     '''
@@ -22,8 +23,8 @@ class Checker(TDDCLogger):
         Constructor
         '''
         super(Checker, self).__init__()
-        self.info('Checker Is Starting.')
-        self.proxy_conf = ConfigCenterExtern().get_proxies()
+        log.info('Checker Is Starting.')
+        self.proxy_conf = DBSession.query(ProxyModel).get(1)
         self.concurrent = self.proxy_conf.concurrent
         self._init_rules()
         for i in range(self.concurrent):
@@ -32,7 +33,7 @@ class Checker(TDDCLogger):
         for i in range(self.concurrent):
             gevent.spawn(self._check, i, 'https')
             gevent.sleep()
-        self.info('Checker Was Started.')
+        log.info('Checker Was Started.')
 
     def _init_rules(self):
         self._rules_moulds = {'http': {}, 'https': {}}
@@ -52,7 +53,7 @@ class Checker(TDDCLogger):
                 proxy = CacheManager().get_random('%s:%s' % (self.proxy_conf.source_key, proxy_type))
                 if not proxy:
                     if not cnt % 6 and tag == 1:
-                        self.warning('No Proxy(%s).' % proxy_type)
+                        log.warning('No Proxy(%s).' % proxy_type)
                     cnt += 1
                     gevent.sleep(10)
                     continue
@@ -61,8 +62,8 @@ class Checker(TDDCLogger):
                     if ret.useful:
                         CacheManager().set('%s:%s' % (self.proxy_conf.pool_key, platform),
                                            proxy)
-                        self.debug('[%s:%s:%s]' % (proxy_type,
-                                                   platform,
-                                                   proxy))
+                        log.debug('[%s:%s:%s]' % (proxy_type,
+                                                  platform,
+                                                  proxy))
             except Exception as e:
-                self.exception(e)
+                log.exception(e)

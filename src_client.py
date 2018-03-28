@@ -4,7 +4,7 @@ Created on 2017年4月14日
 
 @author: chenyitao
 '''
-
+import logging
 import os
 import setproctitle
 
@@ -12,8 +12,12 @@ import gevent.monkey
 gevent.monkey.patch_all()
 
 from tddc import WorkerManager
-from config import ConfigCenterExtern
 from worker.checker import Checker
+
+
+logging.getLogger('urllib3').setLevel(logging.WARN)
+logging.getLogger('paramiko').setLevel(logging.WARN)
+log = logging.getLogger(__name__)
 
 
 class ProxyCheckerManager(WorkerManager):
@@ -26,15 +30,14 @@ class ProxyCheckerManager(WorkerManager):
         Constructor
         '''
         super(ProxyCheckerManager, self).__init__()
-        self.info('Proxy Checker Is Starting')
+        log.info('Proxy Checker Is Starting')
         self._checker = Checker()
-        self.info('Proxy Checker Was Ready.')
+        log.info('Proxy Checker Was Ready.')
 
     @staticmethod
     def start():
         if os.path.exists('./worker.log'):
             os.remove('./worker.log')
-        ConfigCenterExtern()
         ProxyCheckerManager()
         while True:
             gevent.sleep(100)
