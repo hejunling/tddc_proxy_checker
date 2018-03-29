@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 
 class ProxySourceUpdater(object):
     '''
-    classdocs
+    代理源更新、ADSL IP更新
     '''
 
     def __init__(self):

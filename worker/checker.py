@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 
 class Checker(object):
     '''
-    classdocs
+    代理更新控制
     '''
 
     def __init__(self):
@@ -36,9 +36,12 @@ class Checker(object):
         log.info('Checker Was Started.')
 
     def _init_rules(self):
+        """
+        初始化需要使用代理的平台检测模块
+        """
         self._rules_moulds = {'http': {}, 'https': {}}
         modules = ExternManager().get_all_modules()
-        ExternManager().update_success_callback = self._init_rules
+        ExternManager().update_success_callback.append(self._init_rules)
         for platform, _module in modules.items():
             for _, cls in _module.items():
                 self._rules_moulds[cls.proxy_type][platform] = cls

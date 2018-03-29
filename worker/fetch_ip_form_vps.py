@@ -14,6 +14,9 @@ log = logging.getLogger(__name__)
 
 
 class FetchIPFromVPS(object):
+    """
+    ADSL IP 管理
+    """
 
     def __init__(self, host, port, username, password):
         self.host = host
@@ -48,6 +51,10 @@ class FetchIPFromVPS(object):
         return client
 
     def redial(self):
+        """
+        重拨
+        :return:
+        """
         self._redial()
         return self.get_ip()
 
