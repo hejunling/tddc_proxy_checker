@@ -38,6 +38,7 @@ class Checker(object):
     def _init_rules(self):
         self._rules_moulds = {'http': {}, 'https': {}}
         modules = ExternManager().get_all_modules()
+        ExternManager().update_success_callback = self._init_rules
         for platform, _module in modules.items():
             for _, cls in _module.items():
                 self._rules_moulds[cls.proxy_type][platform] = cls

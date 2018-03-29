@@ -32,14 +32,15 @@ class CheokProxyChecker(ExternBase):
         super(CheokProxyChecker, self).__init__()
         self.proxy = proxy
         self.useful = False
-        proxies = {'http': proxy}
+        proxies = {'http': 'http://{}'.format(proxy),
+                   'https': 'https://{}'.format(proxy)}
         headers = {'User-Agent': ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) '
                                   'AppleWebKit/537.36 (KHTML, like Gecko) '
                                   'Chrome/56.0.2924.87 Safari/537.36'),
                    'X-Forwarded-For': proxies['http']}
         try:
             rsp = requests.get(self.check_page, proxies=proxies, timeout=5, headers=headers)
-        except:
+        except Exception as e:
             pass
         else:
             if rsp.status_code != 200:
@@ -49,6 +50,6 @@ class CheokProxyChecker(ExternBase):
             except:
                 pass
             else:
-                ret = doc.xpath('//*[@class="module-title"]')
+                ret = doc.xpath('//*[@data-name="index"]')
                 if len(ret):
                     self.useful = True
